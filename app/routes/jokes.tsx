@@ -3,19 +3,34 @@ import { json } from "@remix-run/node";
 import { Link, Outlet, useLoaderData } from "@remix-run/react";
 
 import stylesUrl from "~/styles/jokes.css";
+import type { JokeList} from "~/types/Joke";
+import { JokeListSchema } from "~/types/Joke";
 import { db } from "~/utils/db.server";
 
 export const links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
+type LoaderReturn =
+  | { success: true; jokeListItems: JokeList }
+  | { success: false };
+
 export const loader = async () => {
-  return json({
-    jokeListItems: await db.joke.findMany({
-      take: 5,
-      select: { id: true, name: true },
-      orderBy: { createdAt: "desc" },
-    }),
+  const jokeListItems = await db.joke.findMany({
+    take: 5,
+    select: { id: true, name: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!JokeListSchema.safeParse(jokeListItems).success) {
+    return json<LoaderReturn>({
+      success: false,
+    });
+  }
+
+  return json<LoaderReturn>({
+    success: true,
+    jokeListItems,
   });
 };
 
@@ -40,11 +55,15 @@ export default function JokesRoute() {
             <Link to=".">Get a random joke</Link>
             <p>Here are a few more jokes to check out:</p>
             <ul>
-              {data.jokeListItems.map((joke) => (
-                <li key={joke.id}>
-                  <Link to={joke.id}>{joke.name}</Link>
-                </li>
-              ))}
+              {data.success ? (
+                data.jokeListItems.map((joke) => (
+                  <li key={joke.id}>
+                    <Link to={joke.id}>{joke.name}</Link>
+                  </li>
+                ))
+              ) : (
+                <li>Error: Could not fetch data</li>
+              )}
             </ul>
             <Link to="new" className="button">
               Add your own
