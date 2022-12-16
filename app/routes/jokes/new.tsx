@@ -1,5 +1,5 @@
 import type { ActionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 import { useActionData } from "@remix-run/react";
 
 import { db } from "~/utils/db.server";
